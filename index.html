@@ -56,8 +56,14 @@
                 </div>
             </form>
             <div
-                style="margin-top: 2rem; border-top: 1px solid #eee; padding-top: 1rem; color: #999; font-size: 0.8rem;">
-                Managed Local Database Engine v1.0
+                style="margin-top: 2rem; border-top: 1px solid #eee; padding-top: 1rem; color: #999; font-size: 0.8rem; text-align: center;">
+                <div>Managed Local Database Engine v1.0</div>
+                <div style="margin-top: 1rem;">
+                    <input type="file" id="import-file" accept=".json" style="display: none;">
+                    <button class="btn btn-outline btn-sm" onclick="document.getElementById('import-file').click()">
+                        <i class="ph ph-upload-simple"></i> Restore Backup
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -494,6 +500,11 @@
                     <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-primary);">Data
                         Actions
                     </h4>
+
+                    <button class="btn btn-outline" id="btn-export-db"
+                        style="width: 100%; justify-content: center; margin-bottom: 0.5rem;" onclick="app.exportData()">
+                        <i class="ph ph-download-simple"></i> Export Backup Data
+                    </button>
 
                     <button class="btn btn-danger" id="btn-clear-db" style="width: 100%; justify-content: center;"
                         onclick="app.clearAllData()">

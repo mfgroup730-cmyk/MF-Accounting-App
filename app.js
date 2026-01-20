@@ -172,6 +172,7 @@ class App {
         });
 
         // Updated for new fields
+        this.bindImportEvents();
         document.getElementById('vehicleForm').addEventListener('submit', (e) => {
             e.preventDefault();
             const f = new FormData(e.target);
@@ -942,6 +943,92 @@ class App {
     }
 
     /* SETTINGS & PREFERENCES */
+    bindImportEvents() {
+        const fileInput = document.getElementById('import-file');
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    this.importData(e.target.files[0]);
+                }
+            });
+        }
+    }
+
+    exportData() {
+        if (!this.currentUser) return;
+
+        // Collect Data
+        const exportObj = {
+            version: 1,
+            date: new Date().toISOString(),
+            user: {
+                username: this.currentUser,
+                role: this.currentRole,
+                password: this.users.find(u => u.username === this.currentUser)?.password
+            },
+            data: this.data
+        };
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `mf_backup_${this.currentUser}_${Date.now()}.json`);
+        document.body.appendChild(downloadAnchorNode); // required for firefox
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+
+        this.toast('Backup file downloaded successfully');
+    }
+
+    importData(file) {
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const json = JSON.parse(e.target.result);
+
+                // Validate structure
+                if (!json.user || !json.data) {
+                    throw new Error("Invalid backup file format");
+                }
+
+                if (!confirm(`Restoring backup for user: ${json.user.username}\nThis will overwrite existing data on this device. Continue?`)) {
+                    return;
+                }
+
+                // 1. Restore User Creds if not exists
+                let allUsers = JSON.parse(localStorage.getItem('mf_users')) || [];
+                const existingUser = allUsers.find(u => u.username === json.user.username);
+
+                if (!existingUser) {
+                    allUsers.push({
+                        username: json.user.username,
+                        password: json.user.password, // Ideally hashed, but local storage app is simple
+                        role: json.user.role
+                    });
+                    localStorage.setItem('mf_users', JSON.stringify(allUsers));
+                }
+
+                // 2. Restore Data
+                localStorage.setItem(`mf_data_${json.user.username}`, JSON.stringify(json.data));
+
+                // 3. Login automatically
+                this.toast('Restore successful! Logging in...', 'success');
+                setTimeout(() => {
+                    this.login(json.user.username, json.user.password);
+                    // Force reload to ensure clean state
+                    window.location.reload();
+                }, 1500);
+
+            } catch (err) {
+                console.error(err);
+                this.toast('Failed to import backup: ' + err.message, 'error');
+            }
+        };
+        reader.readAsText(file);
+    }
+
     applyPreferences() {
         // Apply dark mode
         if (this.darkMode) {
