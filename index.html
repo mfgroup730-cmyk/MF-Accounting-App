@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MFGroup - Enterprise Vehicle Management</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+
+<body>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <div id="login-screen">
+        <div class="login-card">
+            <div class="brand-hero">
+                <div class="brand-icon-lg"><i class="ph ph-truck"></i></div>
+                <h1>MF Group</h1>
+                <p id="login-subtitle">Enterprise Logistics & Billing System</p>
+            </div>
+
+            <form id="loginForm">
+                <div id="login-fields">
+                    <div class="form-group text-left" style="text-align: left;">
+                        <label>Workspace ID / Username</label>
+                        <input type="text" class="form-control" id="username" placeholder="Enter username" required>
+                    </div>
+                    <div class="form-group text-left" style="text-align: left;">
+                        <label>Password</label>
+                        <div style="position: relative;">
+                            <input type="password" class="form-control" id="password" placeholder="•••••••" required>
+                            <i class="ph ph-eye-slash" id="toggle-password"
+                                style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6b7280;"
+                                onclick="app.togglePasswordVisibility()"></i>
+                        </div>
+                    </div>
+                    <div id="role-group" class="form-group text-left" style="text-align: left; display: none;">
+                        <label>System Role</label>
+                        <select class="form-control" id="user-role">
+                            <option value="Admin">Administrator (Full Access)</option>
+                            <option value="FleetManager">Fleet Manager (Fleet & Bills)</option>
+                            <option value="BillingOfficer">Billing Officer (Bills Only)</option>
+                            <option value="Auditor">Auditor (View Only)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block" id="login-btn">
+                        <i class="ph ph-sign-in"></i> <span id="login-btn-text">Secure Login</span>
+                    </button>
+                    <p style="margin-top: 1.5rem; font-size: 0.9rem; color: var(--text-secondary);">
+                        Don't have an account? <a href="javascript:void(0)" id="toggle-auth"
+                            style="color: var(--primary); font-weight: 600; text-decoration: none;">Create Account</a>
+                    </p>
+                </div>
+            </form>
+            <div
+                style="margin-top: 2rem; border-top: 1px solid #eee; padding-top: 1rem; color: #999; font-size: 0.8rem;">
+                Managed Local Database Engine v1.0
+            </div>
+        </div>
+    </div>
+
+    <!-- App Container -->
+    <div id="app-container" class="app-container" style="display: none;">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-logo"><i class="ph ph-steering-wheel"></i></div>
+                <div class="brand-text">MF Group</div>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="javascript:void(0)" class="nav-item active" onclick="app.navigate('dashboard')">
+                    <i class="ph ph-squares-four"></i> <span>Dashboard</span>
+                </a>
+                <a href="javascript:void(0)" class="nav-item" onclick="app.navigate('vehicles')">
+                    <i class="ph ph-truck"></i> <span>Fleet</span>
+                </a>
+                <a href="javascript:void(0)" class="nav-item" onclick="app.navigate('bills')">
+                    <i class="ph ph-receipt"></i> <span>Billing</span>
+                </a>
+                <a href="javascript:void(0)" class="nav-item" onclick="app.navigate('clients')">
+                    <i class="ph ph-users"></i> <span>Clients</span>
+                </a>
+                <div style="flex:1"></div>
+                <a href="javascript:void(0)" class="nav-item" onclick="app.logout()">
+                    <i class="ph ph-sign-out"></i> <span>Sign Out</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile-sm">
+                    <div class="avatar-sm" id="user-avatar">FM</div>
+                    <div style="font-size: 0.9rem;">
+                        <div style="font-weight: 600;" id="user-display-name">Fathy Mohamed</div>
+                        <div style="color: #64748b; font-size: 0.8rem;" id="user-display-role">MF Manager</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="btn btn-outline btn-icon" id="sidebar-toggle" onclick="app.toggleSidebar()"
+                        style="display: none;">
+                        <i class="ph ph-list"></i>
+                    </button>
+                    <div class="page-title">
+                        <h2 id="page-title">Dashboard</h2>
+                        <p id="current-date" style="margin-top:2px;">Overview</p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                    <button class="btn btn-outline btn-icon" id="darkmode-toggle" onclick="app.toggleDarkMode()"
+                        title="Toggle Dark Mode">
+                        <i class="ph ph-moon"></i>
+                    </button>
+                    <button class="btn btn-outline btn-icon" onclick="app.openModal('settingsModal')" title="Settings">
+                        <i class="ph ph-gear"></i>
+                    </button>
+                    <button class="btn btn-outline btn-icon" title="Notifications"
+                        onclick="app.toast('No new notifications', 'info')">
+                        <i class="ph ph-bell"></i>
+                    </button>
+                    <button class="btn btn-primary" id="btn-header-new-bill" onclick="app.navigate('bills')">
+                        <i class="ph ph-plus"></i> <span class="hide-mobile">New Bill</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="scrollable-content">
+
+                <!-- DASHBOARD -->
+                <div id="view-dashboard" class="view active">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon primary"><i class="ph ph-truck"></i></div>
+                            <div class="stat-info">
+                                <h4>Active Fleet</h4>
+                                <div class="value" id="stat-vehicles">0</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background:#fef3c7; color:#d97706"><i
+                                    class="ph ph-receipt"></i></div>
+                            <div class="stat-info">
+                                <h4>Invoices Issued</h4>
+                                <div class="value" id="stat-bills">0</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background:#dcfce7; color:#16a34a"><i class="ph ph-users"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h4>Total Clients</h4>
+                                <div class="value" id="stat-clients">0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Recent Operations</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Type</th>
+                                            <th>Description</th>
+                                            <th>Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="activity-list">
+                                        <!-- JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VEHICLES -->
+                <div id="view-vehicles" class="view">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>Fleet Management</h3>
+                                <p style="font-size: 0.9rem; color: #6b7280;">Manage vehicle assets and status</p>
+                            </div>
+                            <div style="display:flex; gap:0.5rem">
+                                <button class="btn btn-outline" onclick="app.createFolder('vehicles')">
+                                    <i class="ph ph-folder-plus"></i> <span class="hide-mobile">New Folder</span>
+                                </button>
+                                <button class="btn btn-primary" id="btn-add-vehicle"
+                                    onclick="app.openModal('vehicleModal')">
+                                    <i class="ph ph-plus"></i> <span class="hide-mobile">Add Vehicle</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Breadcrumb -->
+                            <div id="vehicles-breadcrumb" class="breadcrumb">
+                                <!-- JS -->
+                            </div>
+                            <!-- Folders -->
+                            <div id="vehicles-folders" class="folder-grid">
+                                <!-- JS -->
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Vehicle Name</th>
+                                            <th>Type</th>
+                                            <th>Driver</th>
+                                            <th>Route</th>
+                                            <th>Status</th>
+                                            <th class="text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="vehicle-list-body">
+                                        <!-- JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CLIENTS -->
+                <div id="view-clients" class="view">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h3>Client Management</h3>
+                                <p style="font-size: 0.9rem; color: #6b7280;">Manage customer records and accounts</p>
+                            </div>
+                            <div style="display:flex; gap:0.5rem">
+                                <button class="btn btn-outline" onclick="app.createFolder('clients')">
+                                    <i class="ph ph-folder-plus"></i> <span class="hide-mobile">New Folder</span>
+                                </button>
+                                <button class="btn btn-primary" id="btn-add-client"
+                                    onclick="app.openModal('clientModal')">
+                                    <i class="ph ph-plus"></i> <span class="hide-mobile">Add Client</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Breadcrumb -->
+                            <div id="clients-breadcrumb" class="breadcrumb"></div>
+                            <!-- Folders -->
+                            <div id="clients-folders" class="folder-grid"></div>
+
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Client Name</th>
+                                            <th>Contact Person</th>
+                                            <th>Phone</th>
+                                            <th>Email</th>
+                                            <th>Status</th>
+                                            <th class="text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="client-list-body">
+                                        <!-- JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BILLING -->
+                <div id="view-bills" class="view">
+                    <!-- Project/Folder Header for Billing -->
+                    <div class="card" style="margin-bottom: 2rem;">
+                        <div class="card-header">
+                            <div>
+                                <h3>Projects & Folders</h3>
+                                <p style="color:#6b7280; font-size:0.9rem">Organize invoices by project</p>
+                            </div>
+                            <button class="btn btn-outline btn-sm" onclick="app.createFolder('bills')">
+                                <i class="ph ph-folder-plus"></i> New Folder
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="bills-breadcrumb" class="breadcrumb"></div>
+                            <div id="bills-folders" class="folder-grid"></div>
+                        </div>
+                    </div>
+
+                    <div class="billing-grid">
+                        <!-- Creator -->
+                        <div class="card dark-theme">
+                            <div class="card-header">
+                                <h3>Invoice Generator</h3>
+                            </div>
+                            <div class="card-body">
+                                <form id="billForm">
+                                    <div class="form-group">
+                                        <label>Client</label>
+                                        <select id="bill-client" class="form-control">
+                                            <option value="">Select a client</option>
+                                            <option value="Direct">Direct Customer</option>
+                                            <option value="Corporate">Corporate Account</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Vehicle ID</label>
+                                        <select id="bill-vehicle-select" class="form-control" required>
+                                            <option value="">Select a vehicle</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Date</label>
+                                        <input type="date" id="bill-date" class="form-control" required>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label style="display:flex; justify-content:space-between; align-items:center">
+                                            <span>Services</span>
+                                        </label>
+                                        <div id="service-list-container" class="custom-scroll"
+                                            style="max-height: 300px; overflow-y: auto; padding-right: 5px;">
+                                            <!-- Dynamic Rows -->
+                                        </div>
+                                        <button type="button" class="btn btn-outline btn-sm" id="btn-add-service"
+                                            onclick="app.addServiceRow()" style="margin-top: 0.5rem;">
+                                            <i class="ph ph-plus"></i> Add Service
+                                        </button>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Currency</label>
+                                        <select id="bill-currency" class="form-control"
+                                            onchange="app.updateCurrencyLabel()">
+                                            <option value="EGP">EGP (EGP)</option>
+                                            <option value="USD">USD ($)</option>
+                                            <option value="SAR">SAR (SAR)</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Additional Charge</label>
+                                        <input type="number" id="bill-additional" class="form-control"
+                                            placeholder="0.00" step="0.01" value="" oninput="app.calcTotal()">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Total Cost <span class="badge" id="total-currency-badge"
+                                                style="background:#334155; color:#94a3b8; font-size:0.7em; margin-left:5px">EGP</span></label>
+                                        <div style="position: relative;">
+                                            <i class="ph ph-lightning"
+                                                style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #f59e0b;"></i>
+                                            <input type="number" id="bill-total" class="form-control" placeholder="0.00"
+                                                readonly
+                                                style="padding-left: 2.5rem; font-weight: bold; background: #f8fafc; color: #0f172a;">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Notes</label>
+                                        <textarea id="bill-notes" class="form-control" rows="2"
+                                            placeholder="Optional"></textarea>
+                                    </div>
+
+                                    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                                        <button type="button" id="cancel-edit-btn" class="btn btn-outline"
+                                            style="flex: 1; display: none;" onclick="app.resetBillForm()">
+                                            <i class="ph ph-x"></i> Cancel
+                                        </button>
+                                        <button type="submit" class="btn btn-primary" id="btn-generate-bill"
+                                            style="flex: 1;">
+                                            <i class="ph ph-printer"></i> Generate & Print
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- History -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Invoice History</h3>
+                            </div>
+                            <div class="card-body" style="padding:0">
+                                <div class="table-responsive">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Ref #</th>
+                                                <th>Vehicle</th>
+                                                <th>Description</th>
+                                                <th>Date</th>
+                                                <th>Amount</th>
+                                                <th class="text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="bill-history-list">
+                                            <!-- JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Settings</h3>
+                <button class="close-modal" id="btn-close-settings"
+                    onclick="app.closeModal('settingsModal')">&times;</button>
+            </div>
+            <div class="card-body">
+                <div class="settings-section">
+                    <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-primary);">
+                        Appearance</h4>
+
+                    <div class="setting-item">
+                        <div>
+                            <label style="font-weight: 500; display: block; margin-bottom: 0.25rem;">Dark Mode</label>
+                            <p style="font-size: 0.875rem; color: var(--text-secondary); margin: 0;">Switch between
+                                light and dark theme</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="darkmode-checkbox" onchange="app.toggleDarkMode()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <div>
+                            <label style="font-weight: 500; display: block; margin-bottom: 0.25rem;">Animations</label>
+                            <p style="font-size: 0.875rem; color: var(--text-secondary); margin: 0;">Enable smooth
+                                transitions and effects</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="animations-checkbox" checked onchange="app.toggleAnimations()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-section" style="margin-top: 2rem;">
+                    <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-primary);">
+                        Database Health</h4>
+                    <div id="db-stats">
+                        <!-- JS Loaded -->
+                    </div>
+                </div>
+
+                <div class="settings-section" style="margin-top: 2rem; display: none;" id="super-admin-section">
+                    <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: #4F46E5;">
+                        <i class="ph ph-shield-check"></i> Super Admin - User Management
+                    </h4>
+                    <div class="table-responsive">
+                        <table class="table" style="font-size: 0.8rem;">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Role</th>
+                                    <th class="text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-management-list">
+                                <!-- JS Loaded -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="settings-section" style="margin-top: 2rem;">
+                    <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-primary);">Data
+                        Actions
+                    </h4>
+
+                    <button class="btn btn-danger" id="btn-clear-db" style="width: 100%; justify-content: center;"
+                        onclick="app.clearAllData()">
+                        <i class="ph ph-trash"></i> Clear All Data
+                    </button>
+                    <p
+                        style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.5rem; text-align: center;">
+                        This will delete all vehicles and invoices</p>
+                </div>
+
+                <div class="settings-section" style="margin-top: 2rem;">
+                    <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-primary);">
+                        About</h4>
+                    <p style="font-size: 0.875rem; color: var(--text-secondary);">
+                        <strong>MF Group</strong> v1.0<br>
+                        Enterprise Vehicle Management System<br>
+                        © 2026 MF Group
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="vehicleModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Register New Vehicle</h3>
+                <button class="close-modal" onclick="app.closeModal('vehicleModal')">&times;</button>
+            </div>
+            <div class="card-body">
+                <form id="vehicleForm">
+                    <div class="form-group">
+                        <label>Vehicle ID</label>
+                        <input type="text" id="vehicle-custom-id" name="customId" class="form-control" required
+                            placeholder="e.g. V-001">
+                    </div>
+                    <div class="form-group">
+                        <label>Vehicle Name</label>
+                        <input type="text" id="vehicle-name" name="name" class="form-control" required
+                            placeholder="e.g. Red Hauler">
+                    </div>
+                    <div class="form-group">
+                        <label>Vehicle Type</label>
+                        <select id="vehicle-type" name="type" class="form-control" required>
+                            <option value="Truck">Truck</option>
+                            <option value="Van">Van</option>
+                            <option value="Bus">Bus</option>
+                            <option value="Car">Sedan / Car</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Driver Name</label>
+                        <input type="text" id="vehicle-driver" name="driver" class="form-control" required
+                            placeholder="Full Name">
+                    </div>
+                    <div class="form-group">
+                        <label>Driver Number</label>
+                        <input type="text" id="vehicle-driver-phone" name="driverPhone" class="form-control" required
+                            placeholder="+1 555-0000">
+                    </div>
+                    <div class="form-group">
+                        <label>Route</label>
+                        <input type="text" id="vehicle-route" name="route" class="form-control"
+                            placeholder="e.g. NY to NJ">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="vehicle-status" name="status" class="form-control">
+                            <option value="Active">Active</option>
+                            <option value="Maintenance">Maintenance</option>
+                        </select>
+                    </div>
+                    <button type="submit" id="btn-submit-vehicle" class="btn btn-primary btn-block">Create
+                        Entry</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Client Modal -->
+    <div id="clientModal" class="modal-overlay">
+        <div class="modal-container" style="max-height: 85vh;">
+            <div class="modal-header">
+                <h3>Register New Client</h3>
+                <button class="close-modal" id="btn-close-client-modal"
+                    onclick="app.closeModal('clientModal')">&times;</button>
+            </div>
+            <div class="card-body custom-scroll">
+                <form id="clientForm">
+                    <div class="form-group">
+                        <label>Client ID</label>
+                        <input type="text" id="client-custom-id" name="customId" class="form-control" required
+                            placeholder="e.g. C-001">
+                    </div>
+                    <div class="form-group">
+                        <label>Client Name / Company</label>
+                        <input type="text" id="client-name" name="name" class="form-control" required
+                            placeholder="e.g. ACME Corp">
+                    </div>
+                    <div class="form-group">
+                        <label>Contact Person</label>
+                        <input type="text" id="client-contact" name="contact" class="form-control" required
+                            placeholder="Full Name">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="text" id="client-phone" name="phone" class="form-control" required
+                            placeholder="+1 555-0000">
+                    </div>
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="client-email" name="email" class="form-control" required
+                            placeholder="client@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="client-status" name="status" class="form-control">
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <button type="submit" id="btn-submit-client" class="btn btn-primary btn-block">Create
+                        Client</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Professional Print Template -->
+    <div id="print-area">
+        <div class="invoice-layout">
+            <!-- Watermark -->
+            <div class="watermark">MF GROUP</div>
+
+            <header class="invoice-header">
+                <div>
+                    <div class="invoice-title">INVOICE</div>
+                    <p>123 Enterprise Rd, Tech City</p>
+                </div>
+                <div style="text-align: right;">
+                    <h3 id="p-id">#INV-000000</h3>
+                    <p id="p-date">Jan 01, 2024</p>
+                </div>
+            </header>
+
+            <div style="margin-bottom: 40px;">
+                <strong>BILL TO:</strong>
+                <p>Client / Internal Record</p>
+                <p>Vehicle: <span id="p-vehicle-title">TOYOTA (ABC-123)</span></p>
+                <p>Driver: <span id="p-driver">John Doe</span></p>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <thead style="background: #eee;">
+                    <tr>
+                        <th style="padding: 10px; text-align: left; border-bottom: 1px solid #000;">Services</th>
+                        <th style="padding: 10px; text-align: right; border-bottom: 1px solid #000;">Cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding: 15px 10px; vertical-align: top;" id="p-services">Service Description</td>
+                        <td style="padding: 15px 10px; text-align: right; vertical-align: top;" id="p-cost">$0.00</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px 10px; text-align: right; font-size: 0.9rem;">Additional Charge:</td>
+                        <td style="padding: 5px 10px; text-align: right;" id="p-additional">$0.00</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div
+                style="text-align: right; margin-top: 10px; font-size: 1.2rem; border-top: 2px solid #333; padding-top: 10px;">
+                <strong>Total: <span id="p-total">$0.00</span></strong>
+            </div>
+
+            <div style="margin-top: 30px; border: 1px dashed #ccc; padding: 15px; font-size: 0.9rem;">
+                <strong>Notes:</strong>
+                <p id="p-notes" style="margin-top: 5px; color: #555;">-</p>
+            </div>
+
+            <!-- Digital Signature Section -->
+            <div class="signature-section">
+                <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <p>Authorized Signature</p>
+                </div>
+                <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <p>Date</p>
+                    <p style="font-size: 0.75rem; color: #888;" id="p-signature-date"></p>
+                </div>
+            </div>
+
+            <footer
+                style="margin-top: 60px; text-align: center; font-size: 0.8rem; color: #666; border-top: 1px solid #ddd; padding-top: 20px;">
+                Thank you for your business. Please remit payment within 30 days.
+            </footer>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
